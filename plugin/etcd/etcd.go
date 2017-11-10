@@ -32,6 +32,8 @@ type Etcd struct {
 	Stubmap     *map[string]proxy.Proxy // list of proxies for stub resolving.
 
 	endpoints []string // Stored here as well, to aid in testing.
+
+	WildcardBound int8 // Calculate the boundary of WildcardDNS
 }
 
 // Services implements the ServiceBackend interface.
@@ -67,6 +69,14 @@ func (e *Etcd) IsNameError(err error) bool {
 // name. This is used when find matches when completing SRV lookups for instance.
 func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error) {
 	name := state.Name()
+
+	if e.WildcardBound > 0 {
+		temp := dns.SplitDomainName(name)
+		if int8(len(temp)) > e.WildcardBound {
+			start := int8(len(temp)) - e.WildcardBound
+			name = fmt.Sprintf("*.%s", strings.Join(temp[start:], "."))
+		}
+	}
 
 	path, star := msg.PathWithWildcard(name, e.PathPrefix)
 	r, err := e.get(path, true)

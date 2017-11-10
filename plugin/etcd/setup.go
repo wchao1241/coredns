@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"crypto/tls"
+	"strconv"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -105,6 +106,18 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 					if err != nil {
 						return &Etcd{}, false, err
 					}
+				case "wildcardbound":
+					if !c.NextArg() {
+						return &Etcd{}, false, c.ArgErr()
+					}
+					v, err := strconv.ParseInt(c.Val(), 10, 8)
+					if err != nil {
+						return &Etcd{}, false, err
+					}
+					if v < 0 {
+						return &Etcd{}, false, c.Errf("wildcardbound value can not be negative: %d", v)
+					}
+					etc.WildcardBound = int8(v)
 				default:
 					if c.Val() != "}" {
 						return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
