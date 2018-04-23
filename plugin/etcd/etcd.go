@@ -4,6 +4,7 @@ package etcd
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -68,6 +69,19 @@ func (e *Etcd) IsNameError(err error) bool {
 // name. This is used when find matches when completing SRV lookups for instance.
 func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error) {
 	name := state.Name()
+	log.Printf("Requested name: %s", name)
+	log.Printf("Zones: %s", e.Zones)
+
+	// No need to lookup the domain name which is like zone name
+	// for example:
+	//  name: lb.rancher.cloud.
+	//  zones: [lb.rancher.cloud]
+	// "lb.rancher.cloud." shold not lookup any keys in etcd
+	for _, zone := range Zones {
+		if strings.HasPrefix(name, zone) {
+			return nil, nil
+		}
+	}
 
 	if e.WildcardBound > 0 {
 		temp := dns.SplitDomainName(name)
@@ -77,7 +91,9 @@ func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error)
 		}
 	}
 
+	log.Printf("Before msg.PathWithWildcard name: %s", name)
 	path, star := msg.PathWithWildcard(name, e.PathPrefix)
+	log.Printf("After msg.PathWIthWildcard path: %s", path)
 	r, err := e.get(path, true)
 	if err != nil {
 		return nil, err
