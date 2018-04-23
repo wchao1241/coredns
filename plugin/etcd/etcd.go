@@ -77,7 +77,7 @@ func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error)
 	//  name: lb.rancher.cloud.
 	//  zones: [lb.rancher.cloud]
 	// "lb.rancher.cloud." shold not lookup any keys in etcd
-	for _, zone := range Zones {
+	for _, zone := range e.Zones {
 		if strings.HasPrefix(name, zone) {
 			return nil, nil
 		}
